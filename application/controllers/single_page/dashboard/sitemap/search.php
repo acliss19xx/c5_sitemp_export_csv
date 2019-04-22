@@ -32,7 +32,8 @@ class Search extends \Concrete\Controller\SinglePage\Dashboard\Sitemap\Search
             t('Path'),
             t('Page Type'),
             t('Page Type Name'),
-            t('最新バージョンが承認')
+            t('最新バージョンが承認'),
+            '作成日時の重複したページバージョンがあるか？',
         ];
 
         fputcsv($fp, $row);
@@ -42,6 +43,21 @@ class Search extends \Concrete\Controller\SinglePage\Dashboard\Sitemap\Search
         foreach ($pages as $page) {
             if (is_object($page)) {
                 $pageVersionList = new \Concrete\Core\Page\Collection\Version\VersionList($page);
+                $versionCreateDates = [];
+                foreach ($pageVersionList->getPage() as $version) {
+                    $versionCreateDates[] = $version->getVersionDateCreated();
+                }
+                $vcds = array_count_values($versionCreateDates);
+                $isVersionDateDuplicate = false;
+                foreach ($vcds as $vcd){
+                    if ($vcd >= 2) {
+                        $isVersionDateDuplicate = true;
+                        break;
+                    }
+                }
+
+                $dates = array_count_values($versionCreateDates);
+
                 $row = [
                     $page->getCollectionID(),
                     t($page->getCollectionName()),
@@ -49,6 +65,7 @@ class Search extends \Concrete\Controller\SinglePage\Dashboard\Sitemap\Search
                     $page->getCollectionTypeHandle(),
                     $page->getCollectionTypeName(),
                     $pageVersionList->getPage(-1)[0]->cvIsApproved ==1 ? 'true' : 'false',
+                    $isVersionDateDuplicate ? 'true':'false',
                 ];
                 fputcsv($fp, $row);
             }
